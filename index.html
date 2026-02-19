@@ -43,15 +43,9 @@
   </p>
 
 <script>
-  // Replace this sample data with your real dish list:
-  const data = [
-    { dish: "Khao Soi", contains: ["Gluten", "Milk"], may: ["Peanut"] },
-    { dish: "Steak", contains: ["Milk"], may: [] },
-    { dish: "Ayam Penyet", contains: [], may: ["Sesame"] },
-  ];
-
-  const rows = document.getElementById("rows");
-  const q = document.getElementById("q");
+  const rowsEl = document.getElementById("rows");
+  const qEl = document.getElementById("q");
+  let allergenData = [];
 
   function pill(text, cls){
     const span = document.createElement("span");
@@ -61,39 +55,100 @@
   }
 
   function render(list){
-    rows.innerHTML = "";
+    rowsEl.innerHTML = "";
     list.forEach(item => {
       const tr = document.createElement("tr");
+
       const tdDish = document.createElement("td");
-      tdDish.textContent = item.dish;
+      tdDish.textContent = item.dish || "—";
 
       const tdContains = document.createElement("td");
-      (item.contains.length ? item.contains : ["—"]).forEach(a => {
+      (item.contains?.length ? item.contains : ["—"]).forEach(a => {
         tdContains.appendChild(a==="—" ? document.createTextNode("—") : pill(a,"contains"));
       });
 
       const tdMay = document.createElement("td");
-      (item.may.length ? item.may : ["—"]).forEach(a => {
+      (item.may?.length ? item.may : ["—"]).forEach(a => {
         tdMay.appendChild(a==="—" ? document.createTextNode("—") : pill(a,"may"));
       });
 
       tr.appendChild(tdDish);
       tr.appendChild(tdContains);
       tr.appendChild(tdMay);
-      rows.appendChild(tr);
+      rowsEl.appendChild(tr);
     });
   }
 
   function filter(){
-    const term = q.value.trim().toLowerCase();
-    if(!term) return render(data);
-    render(data.filter(d => d.dish.toLowerCase().includes(term)));
+    const term = qEl.value.trim().toLowerCase();
+    if(!term) return render(allergenData);
+    render(allergenData.filter(d => (d.dish || "").toLowerCase().includes(term)));
   }
 
-  q.addEventListener("input", filter);
-  render(data);
+  // CSV line parser that correctly handles commas inside quotes
+  function parseCsvLine(line){
+    const out = [];
+    let cur = "";
+    let inQuotes = false;
 
-  document.getElementById("updated").textContent = new Date().toLocaleDateString(undefined, {year:"numeric",month:"short",day:"numeric"});
+    for (let i = 0; i < line.length; i++){
+      const ch = line[i];
+      if (ch === '"'){
+        // handle escaped quotes ""
+        if (inQuotes && line[i+1] === '"'){ cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === "," && !inQuotes){
+        out.push(cur);
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  }
+
+  async function loadData(){
+    const res = await fetch("allergens.csv", { cache: "no-store" });
+    const text = await res.text();
+
+    const lines = text.replace(/\r/g,"").trim().split("\n");
+    // Expect header: dish,contains,may
+    const dataLines = lines.slice(1).filter(Boolean);
+
+    return dataLines.map(line => {
+      const [dish, contains, may] = parseCsvLine(line);
+
+      const containsList = (contains || "")
+        .replace(/^"|"$/g,"")
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+      const mayList = (may || "")
+        .replace(/^"|"$/g,"")
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean);
+
+      return { dish: (dish || "").replace(/^"|"$/g,""), contains: containsList, may: mayList };
+    }).filter(x => x.dish);
+  }
+
+  qEl.addEventListener("input", filter);
+
+  loadData().then(data => {
+    allergenData = data;
+    render(allergenData);
+  }).catch(err => {
+    rowsEl.innerHTML = `<tr><td colspan="3">Could not load allergen list. Check allergens.csv is uploaded in the same repo.</td></tr>`;
+    console.error(err);
+  });
+
+  document.getElementById("updated").textContent =
+    new Date().toLocaleDateString(undefined, {year:"numeric",month:"short",day:"numeric"});
 </script>
+
 </body>
 </html>
+
