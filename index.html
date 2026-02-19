@@ -47,7 +47,7 @@
   const hintEl = document.getElementById("hint");
   let allergenData = [];
 
-  // Your SVG icons are in the repo ROOT (same level as index.html)
+  // Icons in root folder
   const iconMap = {
     gluten: "gluten.svg",
     milk: "milk.svg",
@@ -65,9 +65,31 @@
     celery: "celery.svg"
   };
 
+  // Professional hospitality display names
+  const displayMap = {
+    soya: "Soy",
+    sulphur: "Sulphites",
+    nuts: "Tree Nuts",
+    peanut: "Peanuts",
+    mollusc: "Molluscs",
+    crustacean: "Crustaceans",
+    gluten: "Gluten (Wheat)"
+  };
+
+  function formatLabel(label){
+    const key = (label || "").toLowerCase().trim();
+    if (displayMap[key]) return displayMap[key];
+
+    return key
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+
   function iconPill(label, cls){
     const key = (label || "").toLowerCase().trim();
     const src = iconMap[key];
+    const displayText = formatLabel(label);
 
     const span = document.createElement("span");
     span.className = `pill ${cls}`;
@@ -75,16 +97,21 @@
     if (src){
       const img = document.createElement("img");
       img.src = src;
-      img.alt = label;
+      img.alt = displayText;
+      img.style.height = "16px";
+      img.style.width = "16px";
+      img.style.verticalAlign = "middle";
+      img.style.marginRight = "6px";
       span.appendChild(img);
     }
 
-    span.appendChild(document.createTextNode(label));
+    span.appendChild(document.createTextNode(displayText));
     return span;
   }
 
   function render(list){
     rowsEl.innerHTML = "";
+
     list.forEach(item => {
       const tr = document.createElement("tr");
 
@@ -131,7 +158,7 @@
 
   async function loadData(){
     const res = await fetch("./allergens.csv", { cache: "no-store" });
-    if (!res.ok) throw new Error("CSV fetch failed: " + res.status);
+    if (!res.ok) throw new Error("CSV fetch failed");
     const text = await res.text();
 
     const lines = text.replace(/\r/g,"").trim().split("\n");
@@ -148,7 +175,11 @@
         .replace(/^"|"$/g,"")
         .split(",").map(x => x.trim()).filter(Boolean);
 
-      return { dish: (dish || "").replace(/^"|"$/g,""), contains: containsList, may: mayList };
+      return {
+        dish: (dish || "").replace(/^"|"$/g,""),
+        contains: containsList,
+        may: mayList
+      };
     }).filter(x => x.dish);
   }
 
@@ -161,19 +192,18 @@
       return;
     }
 
-    const results = allergenData.filter(d => (d.dish || "").toLowerCase().includes(term));
+    const results = allergenData.filter(d =>
+      (d.dish || "").toLowerCase().includes(term)
+    );
+
     if (hintEl) hintEl.textContent = results.length ? "" : "No matching dishes found.";
     render(results);
   }
 
   qEl.addEventListener("input", filter);
-
-  loadData()
-    .catch(err => {
-      console.error(err);
-      rowsEl.innerHTML = `<tr><td colspan="3">Could not load allergen list. Please check allergens.csv is in the repo.</td></tr>`;
-      if (hintEl) hintEl.textContent = "";
-    });
+  loadData();
 </script>
+
 </body>
 </html>
+
