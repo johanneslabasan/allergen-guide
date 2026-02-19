@@ -81,8 +81,15 @@
 
   function filter(){
     const term = qEl.value.trim().toLowerCase();
-    if(!term) return render(allergenData);
-    render(allergenData.filter(d => (d.dish || "").toLowerCase().includes(term)));
+
+    if(!term){
+      rowsEl.innerHTML = "";
+      return;
+    }
+
+    render(allergenData.filter(d =>
+      (d.dish || "").toLowerCase().includes(term)
+    ));
   }
 
   function parseCsvLine(line){
@@ -113,7 +120,7 @@
     const lines = text.replace(/\r/g,"").trim().split("\n");
     const dataLines = lines.slice(1).filter(Boolean);
 
-    return dataLines.map(line => {
+    allergenData = dataLines.map(line => {
       const [dish, contains, may] = parseCsvLine(line);
 
       const containsList = (contains || "")
@@ -134,16 +141,11 @@
 
   qEl.addEventListener("input", filter);
 
-  loadData().then(data => {
-    allergenData = data;
-    render(allergenData);
-  }).catch(err => {
-    rowsEl.innerHTML = `<tr><td colspan="3">Could not load allergen list. Check allergens.csv is in the same folder as index.html.</td></tr>`;
-    console.error(err);
-  });
+  loadData();
 
   document.getElementById("updated").textContent =
     new Date().toLocaleDateString(undefined, {year:"numeric",month:"short",day:"numeric"});
 </script>
 </body>
 </html>
+
