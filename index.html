@@ -20,7 +20,9 @@
 </head>
 <body>
   <h1>Allergen Guide</h1>
-  <p class="sub">Search a dish to view allergens. If you have a severe allergy, please speak with a team member.</p>
+  <p class="sub">
+    Search a dish to view allergens. If you have a severe allergy, please speak with a team member.
+  </p>
 
   <input id="q" type="search" placeholder="Search dish name (e.g., Khao Soi, Steak, Ayam Penyet)..." autofocus />
 
@@ -83,7 +85,6 @@
     render(allergenData.filter(d => (d.dish || "").toLowerCase().includes(term)));
   }
 
-  // Robust CSV parser (handles commas inside quotes)
   function parseCsvLine(line){
     const out = [];
     let cur = "";
@@ -106,7 +107,7 @@
   }
 
   async function loadData(){
-    const res = await fetch("allergens.csv", { cache: "no-store" });
+    const res = await fetch("./allergens.csv", { cache: "no-store" });
     const text = await res.text();
 
     const lines = text.replace(/\r/g,"").trim().split("\n");
@@ -137,7 +138,7 @@
     allergenData = data;
     render(allergenData);
   }).catch(err => {
-    rowsEl.innerHTML = `<tr><td colspan="3">Could not load allergen list. Check allergens.csv is in the same repo folder.</td></tr>`;
+    rowsEl.innerHTML = `<tr><td colspan="3">Could not load allergen list. Check allergens.csv is in the same folder as index.html.</td></tr>`;
     console.error(err);
   });
 
