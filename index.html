@@ -1,65 +1,50 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Allergen Guide</title>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;max-width:980px}
-    h1{margin:0 0 8px}
-    .sub{color:#555;margin:0 0 18px;line-height:1.4}
-    input{width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:10px;font-size:16px}
-    table{width:100%;border-collapse:collapse;margin-top:14px}
-    th,td{padding:10px 8px;border-bottom:1px solid #eee;vertical-align:top}
-    th{position:sticky;top:0;background:#fff;text-align:left;border-bottom:1px solid #ddd}
-    .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid #ddd;margin:2px 6px 2px 0;font-size:13px}
-    .contains{border-color:#c00;color:#900}
-    .may{border-color:#c90;color:#840}
-    .footer{margin-top:18px;color:#666;font-size:13px;line-height:1.4}
-  </style>
-</head>
-<body>
-  <div style="margin-bottom:30px;">
-  <img src="logo.png" alt="Vibe Hotels" style="height:60px;">
-</div>
-
-  <h1>Allergen Guide</h1>
-  <p class="sub">
-    Search a dish to view allergens. If you have a severe allergy, please speak with a team member.
-  </p>
-
-  <input id="q" type="search" placeholder="Search dish name (e.g., Khao Soi, Steak, Ayam Penyet)..." autofocus />
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width:34%">Dish</th>
-        <th style="width:33%">Contains</th>
-        <th style="width:33%">May contain</th>
-      </tr>
-    </thead>
-    <tbody id="rows"></tbody>
-  </table>
-
-  <p class="footer">
-    Legend: <span class="pill contains">Contains</span> <span class="pill may">May contain</span><br/>
-    Last updated: <span id="updated"></span>
-  </p>
-
 <script>
   const rowsEl = document.getElementById("rows");
   const qEl = document.getElementById("q");
   let allergenData = [];
 
-  function pill(text, cls){
+  const iconMap = {
+    gluten: "gluten.svg",
+    milk: "milk.svg",
+    eggs: "eggs.svg",
+    fish: "fish.svg",
+    crustacean: "crustacean.svg",
+    mollusc: "mollusc.svg",
+    nuts: "nuts.svg",
+    peanut: "peanut.svg",
+    sesame: "sesame.svg",
+    soya: "soya.svg",
+    lupin: "lupin.svg",
+    sulphur: "sulphur.svg",
+    mustard: "mustard.svg",
+    celery: "celery.svg"
+  };
+
+  function iconPill(label, cls){
+    const key = (label || "").toLowerCase();
+    const src = iconMap[key];
+
     const span = document.createElement("span");
     span.className = `pill ${cls}`;
-    span.textContent = text;
+
+    if (src){
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = label;
+      img.style.height = "16px";
+      img.style.width = "16px";
+      img.style.verticalAlign = "middle";
+      img.style.marginRight = "6px";
+      span.appendChild(img);
+    }
+
+    span.appendChild(document.createTextNode(label));
     return span;
   }
 
   function render(list){
     rowsEl.innerHTML = "";
+
     list.forEach(item => {
       const tr = document.createElement("tr");
 
@@ -68,12 +53,12 @@
 
       const tdContains = document.createElement("td");
       (item.contains?.length ? item.contains : ["—"]).forEach(a => {
-        tdContains.appendChild(a==="—" ? document.createTextNode("—") : pill(a,"contains"));
+        tdContains.appendChild(a === "—" ? document.createTextNode("—") : iconPill(a,"contains"));
       });
 
       const tdMay = document.createElement("td");
       (item.may?.length ? item.may : ["—"]).forEach(a => {
-        tdMay.appendChild(a==="—" ? document.createTextNode("—") : pill(a,"may"));
+        tdMay.appendChild(a === "—" ? document.createTextNode("—") : iconPill(a,"may"));
       });
 
       tr.appendChild(tdDish);
@@ -118,7 +103,7 @@
   }
 
   async function loadData(){
-    const res = await fetch("./allergens.csv", { cache: "no-store" });
+    const res = await fetch("allergens.csv", { cache: "no-store" });
     const text = await res.text();
 
     const lines = text.replace(/\r/g,"").trim().split("\n");
@@ -139,7 +124,11 @@
         .map(x => x.trim())
         .filter(Boolean);
 
-      return { dish: (dish || "").replace(/^"|"$/g,""), contains: containsList, may: mayList };
+      return {
+        dish: (dish || "").replace(/^"|"$/g,""),
+        contains: containsList,
+        may: mayList
+      };
     }).filter(x => x.dish);
   }
 
@@ -148,9 +137,9 @@
   loadData();
 
   document.getElementById("updated").textContent =
-    new Date().toLocaleDateString(undefined, {year:"numeric",month:"short",day:"numeric"});
+    new Date().toLocaleDateString(undefined, {
+      year:"numeric",
+      month:"short",
+      day:"numeric"
+    });
 </script>
-</body>
-</html>
-
-
