@@ -41,13 +41,13 @@
 
   <div id="hint" class="hint">Type in the search bar to display results.</div>
 
+
 <script>
   const rowsEl = document.getElementById("rows");
   const qEl = document.getElementById("q");
   const hintEl = document.getElementById("hint");
   let allergenData = [];
 
-  // Icons in root folder
   const iconMap = {
     gluten: "gluten.svg",
     milk: "milk.svg",
@@ -65,7 +65,6 @@
     celery: "celery.svg"
   };
 
-  // Professional hospitality display names
   const displayMap = {
     soya: "Soy",
     sulphur: "Sulphites",
@@ -76,14 +75,18 @@
     gluten: "Gluten (Wheat)"
   };
 
-  function formatLabel(label){
-    const key = (label || "").toLowerCase().trim();
-    if (displayMap[key]) return displayMap[key];
-
-    return key
+  function titleCase(text){
+    return (text || "")
+      .toLowerCase()
       .split(" ")
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
+  }
+
+  function formatLabel(label){
+    const key = (label || "").toLowerCase().trim();
+    if (displayMap[key]) return displayMap[key];
+    return titleCase(key);
   }
 
   function iconPill(label, cls){
@@ -99,8 +102,6 @@
       img.src = src;
       img.alt = displayText;
       img.style.height = "16px";
-      img.style.width = "16px";
-      img.style.verticalAlign = "middle";
       img.style.marginRight = "6px";
       span.appendChild(img);
     }
@@ -116,7 +117,7 @@
       const tr = document.createElement("tr");
 
       const tdDish = document.createElement("td");
-      tdDish.textContent = item.dish || "—";
+      tdDish.textContent = titleCase(item.dish);   // ← THIS is what capitalizes dishes
 
       const tdContains = document.createElement("td");
       (item.contains.length ? item.contains : ["—"]).forEach(a => {
@@ -204,6 +205,8 @@
   loadData();
 </script>
 
+
 </body>
 </html>
+
 
