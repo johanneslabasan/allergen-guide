@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cocktail Allergen Guide</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;max-width:980px}
+    .logo{margin-bottom:18px}
+    .sub{color:#555;margin:0 0 14px;line-height:1.4}
+    input{width:100%;padding:12px 14px;border:1px solid #ccc;border-radius:10px;font-size:16px}
+    table{width:100%;border-collapse:collapse;margin-top:14px}
+    th,td{padding:10px 8px;border-bottom:1px solid #eee;vertical-align:top}
+    th{position:sticky;top:0;background:#fff;text-align:left;border-bottom:1px solid #ddd}
+    .pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;border:1px solid #ddd;margin:2px 6px 2px 0;font-size:13px;gap:6px}
+    .pill img{height:16px;width:16px}
+    .contains{border-color:#c00;color:#900}
+    .may{border-color:#c90;color:#840}
+    .hint{color:#777;font-size:13px;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <img src="logo.png" alt="Vibe Hotels" style="height:60px;width:auto;">
+  </div>
+
+  <p class="sub">Search a dish to view allergens. If you have a severe allergy, please speak with a team member.</p>
+
+  <input id="q" type="search" placeholder="Start typing a dish name (e.g., olives, khao soi)..." autocomplete="off" />
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:34%">Dish</th>
+        <th style="width:33%">Contains</th>
+        <th style="width:33%">May contain</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <div id="hint" class="hint">Type in the search bar to display results.</div>
+
+
+<script>
+  const rowsEl = document.getElementById("rows");
+  const qEl = document.getElementById("q");
+  const hintEl = document.getElementById("hint");
+  let allergenData = [];
+
+  const iconMap = {
+    gluten: "gluten.svg",
+    milk: "milk.svg",
+    eggs: "eggs.svg",
+    fish: "fish.svg",
+    crustacean: "crustacean.svg",
+    mollusc: "mollusc.svg",
+    nuts: "nuts.svg",
+    peanut: "peanut.svg",
+    sesame: "sesame.svg",
+    soya: "soya.svg",
+    lupin: "lupin.svg",
+    sulphur: "sulphur.svg",
+    mustard: "mustard.svg",
+    celery: "celery.svg"
+  };
+
+  const displayMap = {
+    soya: "Soy",
+    sulphur: "Sulphites",
+    nuts: "Tree Nuts",
+    peanut: "Peanuts",
+    mollusc: "Molluscs",
+    crustacean: "Crustaceans",
+    gluten: "Gluten (Wheat)"
+  };
+
+  function titleCase(text){
+    return (text || "")
+      .toLowerCase()
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+
+  function formatLabel(label){
+    const key = (label || "").toLowerCase().trim();
+    if (displayMap[key]) return displayMap[key];
+    return titleCase(key);
+  }
+
+  function iconPill(label, cls){
+    const key = (label || "").toLowerCase().trim();
+    const src = iconMap[key];
+    const displayText = formatLabel(label);
+
+    const span = document.createElement("span");
+    span.className = `pill ${cls}`;
+
+    if (src){
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = displayText;
+      img.style.height = "16px";
+      img.style.marginRight = "6px";
+      span.appendChild(img);
+    }
+
+    span.appendChild(document.createTextNode(displayText));
+    return span;
+  }
+
+  function render(list){
+    rowsEl.innerHTML = "";
+
+    list.forEach(item => {
+      const tr = document.createElement("tr");
+
+      const tdDish = document.createElement("td");
+      tdDish.textContent = titleCase(item.dish);   // ← THIS is what capitalizes dishes
+
+      const tdContains = document.createElement("td");
+      (item.contains.length ? item.contains : ["—"]).forEach(a => {
+        tdContains.appendChild(a === "—" ? document.createTextNode("—") : iconPill(a,"contains"));
+      });
+
+      const tdMay = document.createElement("td");
+      (item.may.length ? item.may : ["—"]).forEach(a => {
+        tdMay.appendChild(a === "—" ? document.createTextNode("—") : iconPill(a,"may"));
+      });
+
+      tr.appendChild(tdDish);
+      tr.appendChild(tdContains);
+      tr.appendChild(tdMay);
+      rowsEl.appendChild(tr);
+    });
+  }
+
+  function parseCsvLine(line){
+    const out = [];
+    let cur = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++){
+      const ch = line[i];
+      if (ch === '"'){
+        if (inQuotes && line[i+1] === '"'){ cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === "," && !inQuotes){
+        out.push(cur);
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  }
+
+  async function loadData(){
+    const res = await fetch("./cocktails.csv", { cache: "no-store" });
+    if (!res.ok) throw new Error("CSV fetch failed");
+    const text = await res.text();
+
+    const lines = text.replace(/\r/g,"").trim().split("\n");
+    const dataLines = lines.slice(1).filter(Boolean);
+
+    allergenData = dataLines.map(line => {
+      const [dish, contains, may] = parseCsvLine(line);
+
+      const containsList = (contains || "")
+        .replace(/^"|"$/g,"")
+        .split(",").map(x => x.trim()).filter(Boolean);
+
+      const mayList = (may || "")
+        .replace(/^"|"$/g,"")
+        .split(",").map(x => x.trim()).filter(Boolean);
+
+      return {
+        dish: (dish || "").replace(/^"|"$/g,""),
+        contains: containsList,
+        may: mayList
+      };
+    }).filter(x => x.dish);
+  }
+
+  function filter(){
+    const term = qEl.value.trim().toLowerCase();
+
+    if(!term){
+      rowsEl.innerHTML = "";
+      if (hintEl) hintEl.textContent = "Type in the search bar to display results.";
+      return;
+    }
+
+    const results = allergenData.filter(d =>
+      (d.dish || "").toLowerCase().includes(term)
+    );
+
+    if (hintEl) hintEl.textContent = results.length ? "" : "No matching dishes found.";
+    render(results);
+  }
+
+  qEl.addEventListener("input", filter);
+  loadData();
+</script>
+
+
+</body>
+</html>
+
