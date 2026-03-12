@@ -41,168 +41,192 @@
 
   <div id="hint" class="hint">Type in the search bar to display results.</div>
 
-
+<div style="margin-top:30px;color:#666;font-size:13px;">
+  Some cocktails may contain traces of allergens depending on garnishes or substitutions.<br>
+  Please inform our team if you have a severe allergy.
+</div>
 <script>
-  const rowsEl = document.getElementById("rows");
-  const qEl = document.getElementById("q");
-  const hintEl = document.getElementById("hint");
-  let allergenData = [];
+ <script>
+const rowsEl = document.getElementById("rows");
+const qEl = document.getElementById("q");
+let cocktailData = [];
 
-  const iconMap = {
-    gluten: "gluten.svg",
-    milk: "milk.svg",
-    eggs: "eggs.svg",
-    fish: "fish.svg",
-    crustacean: "crustacean.svg",
-    mollusc: "mollusc.svg",
-    nuts: "nuts.svg",
-    peanut: "peanut.svg",
-    sesame: "sesame.svg",
-    soya: "soya.svg",
-    lupin: "lupin.svg",
-    sulphur: "sulphur.svg",
-    mustard: "mustard.svg",
-    celery: "celery.svg"
-  };
+const iconMap = {
+  gluten: "gluten.svg",
+  milk: "milk.svg",
+  eggs: "eggs.svg",
+  fish: "fish.svg",
+  crustacean: "crustacean.svg",
+  mollusc: "mollusc.svg",
+  nuts: "nuts.svg",
+  peanut: "peanut.svg",
+  sesame: "sesame.svg",
+  soya: "soya.svg",
+  lupin: "lupin.svg",
+  sulphur: "sulphur.svg",
+  mustard: "mustard.svg",
+  celery: "celery.svg"
+};
 
-  const displayMap = {
-    soya: "Soy",
-    sulphur: "Sulphites",
-    nuts: "Tree Nuts",
-    peanut: "Peanuts",
-    mollusc: "Molluscs",
-    crustacean: "Crustaceans",
-    gluten: "Gluten (Wheat)"
-  };
+const displayMap = {
+  soya: "Soy",
+  sulphur: "Sulphites",
+  nuts: "Tree Nuts",
+  peanut: "Peanuts",
+  mollusc: "Molluscs",
+  crustacean: "Crustaceans",
+  gluten: "Gluten (Wheat)"
+};
 
-  function titleCase(text){
-    return (text || "")
-      .toLowerCase()
-      .split(" ")
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+function titleCase(text){
+  return (text || "")
+    .toLowerCase()
+    .split(" ")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function formatLabel(label){
+  const key = (label || "").toLowerCase().trim();
+  if(displayMap[key]) return displayMap[key];
+  return titleCase(key);
+}
+
+function iconPill(label, cls){
+  const key = (label || "").toLowerCase().trim();
+  const src = iconMap[key];
+  const displayText = formatLabel(label);
+
+  const span = document.createElement("span");
+  span.className = `pill ${cls}`;
+
+  if(src){
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = displayText;
+    img.style.height = "16px";
+    img.style.marginRight = "6px";
+    span.appendChild(img);
   }
 
-  function formatLabel(label){
-    const key = (label || "").toLowerCase().trim();
-    if (displayMap[key]) return displayMap[key];
-    return titleCase(key);
-  }
+  span.appendChild(document.createTextNode(displayText));
+  return span;
+}
 
-  function iconPill(label, cls){
-    const key = (label || "").toLowerCase().trim();
-    const src = iconMap[key];
-    const displayText = formatLabel(label);
+function render(list){
+  rowsEl.innerHTML = "";
 
-    const span = document.createElement("span");
-    span.className = `pill ${cls}`;
+  let currentLetter = "";
 
-    if (src){
-      const img = document.createElement("img");
-      img.src = src;
-      img.alt = displayText;
-      img.style.height = "16px";
-      img.style.marginRight = "6px";
-      span.appendChild(img);
+  list.forEach(item => {
+
+    const firstLetter = item.dish.charAt(0).toUpperCase();
+
+    if(firstLetter !== currentLetter){
+      currentLetter = firstLetter;
+
+      const letterRow = document.createElement("tr");
+      const letterCell = document.createElement("td");
+
+      letterCell.colSpan = 3;
+      letterCell.style.fontWeight = "bold";
+      letterCell.style.paddingTop = "20px";
+      letterCell.textContent = currentLetter;
+
+      letterRow.appendChild(letterCell);
+      rowsEl.appendChild(letterRow);
     }
 
-    span.appendChild(document.createTextNode(displayText));
-    return span;
-  }
+    const tr = document.createElement("tr");
 
-  function render(list){
-    rowsEl.innerHTML = "";
+    const tdDish = document.createElement("td");
+    tdDish.textContent = titleCase(item.dish);
 
-    list.forEach(item => {
-      const tr = document.createElement("tr");
-
-      const tdDish = document.createElement("td");
-      tdDish.textContent = titleCase(item.dish);   // ← THIS is what capitalizes dishes
-
-      const tdContains = document.createElement("td");
-      (item.contains.length ? item.contains : ["—"]).forEach(a => {
-        tdContains.appendChild(a === "—" ? document.createTextNode("—") : iconPill(a,"contains"));
-      });
-
-      const tdMay = document.createElement("td");
-      (item.may.length ? item.may : ["—"]).forEach(a => {
-        tdMay.appendChild(a === "—" ? document.createTextNode("—") : iconPill(a,"may"));
-      });
-
-      tr.appendChild(tdDish);
-      tr.appendChild(tdContains);
-      tr.appendChild(tdMay);
-      rowsEl.appendChild(tr);
+    const tdContains = document.createElement("td");
+    (item.contains.length ? item.contains : ["—"]).forEach(a=>{
+      tdContains.appendChild(a==="—" ? document.createTextNode("—") : iconPill(a,"contains"));
     });
-  }
 
-  function parseCsvLine(line){
-    const out = [];
-    let cur = "";
-    let inQuotes = false;
+    const tdMay = document.createElement("td");
+    (item.may.length ? item.may : ["—"]).forEach(a=>{
+      tdMay.appendChild(a==="—" ? document.createTextNode("—") : iconPill(a,"may"));
+    });
 
-    for (let i = 0; i < line.length; i++){
-      const ch = line[i];
-      if (ch === '"'){
-        if (inQuotes && line[i+1] === '"'){ cur += '"'; i++; }
-        else inQuotes = !inQuotes;
-      } else if (ch === "," && !inQuotes){
-        out.push(cur);
-        cur = "";
-      } else {
-        cur += ch;
-      }
+    tr.appendChild(tdDish);
+    tr.appendChild(tdContains);
+    tr.appendChild(tdMay);
+    rowsEl.appendChild(tr);
+  });
+}
+
+function parseCsvLine(line){
+  const out=[];
+  let cur="";
+  let inQuotes=false;
+
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch === '"'){
+      if(inQuotes && line[i+1] === '"'){ cur+='"'; i++; }
+      else inQuotes=!inQuotes;
     }
-    out.push(cur);
-    return out.map(s => s.trim());
-  }
-
-  async function loadData(){
-    const res = await fetch("./cocktails.csv", { cache: "no-store" });
-    if (!res.ok) throw new Error("CSV fetch failed");
-    const text = await res.text();
-
-    const lines = text.replace(/\r/g,"").trim().split("\n");
-    const dataLines = lines.slice(1).filter(Boolean);
-
-    allergenData = dataLines.map(line => {
-      const [dish, contains, may] = parseCsvLine(line);
-
-      const containsList = (contains || "")
-        .replace(/^"|"$/g,"")
-        .split(",").map(x => x.trim()).filter(Boolean);
-
-      const mayList = (may || "")
-        .replace(/^"|"$/g,"")
-        .split(",").map(x => x.trim()).filter(Boolean);
-
-      return {
-        dish: (dish || "").replace(/^"|"$/g,""),
-        contains: containsList,
-        may: mayList
-      };
-    }).filter(x => x.dish);
-  }
-
-  function filter(){
-    const term = qEl.value.trim().toLowerCase();
-
-    if(!term){
-      rowsEl.innerHTML = "";
-      if (hintEl) hintEl.textContent = "Type in the search bar to display results.";
-      return;
+    else if(ch===',' && !inQuotes){
+      out.push(cur);
+      cur="";
     }
-
-    const results = allergenData.filter(d =>
-      (d.dish || "").toLowerCase().includes(term)
-    );
-
-    if (hintEl) hintEl.textContent = results.length ? "" : "No matching dishes found.";
-    render(results);
+    else{
+      cur+=ch;
+    }
   }
 
-  qEl.addEventListener("input", filter);
-  loadData();
+  out.push(cur);
+  return out.map(s=>s.trim());
+}
+
+async function loadData(){
+  const res = await fetch("./cocktails.csv");
+  const text = await res.text();
+
+  const lines = text.replace(/\r/g,"").trim().split("\n");
+  const dataLines = lines.slice(1).filter(Boolean);
+
+  cocktailData = dataLines.map(line=>{
+    const [dish,contains,may] = parseCsvLine(line);
+
+    const containsList=(contains||"")
+      .replace(/^"|"$/g,"")
+      .split(",").map(x=>x.trim()).filter(Boolean);
+
+    const mayList=(may||"")
+      .replace(/^"|"$/g,"")
+      .split(",").map(x=>x.trim()).filter(Boolean);
+
+    return{
+      dish:(dish||"").replace(/^"|"$/g,""),
+      contains:containsList,
+      may:mayList
+    };
+  }).sort((a,b)=>a.dish.localeCompare(b.dish));
+}
+
+function filter(){
+  const term=qEl.value.trim().toLowerCase();
+
+  if(!term){
+    render(cocktailData);
+    return;
+  }
+
+  const results=cocktailData.filter(d =>
+    d.dish.toLowerCase().includes(term)
+  );
+
+  render(results);
+}
+
+qEl.addEventListener("input",filter);
+loadData().then(()=>render(cocktailData));
+</script>
 </script>
 
 
